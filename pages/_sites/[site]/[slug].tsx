@@ -51,7 +51,7 @@ export default function Post({
     stringifiedAdjacentPosts
   ) as Array<AdjacentPost>;
 
-  const meta = {
+  const meta: Meta = {
     title: data.title,
     description: data.description,
     ogUrl: `https://${data.site?.subdomain}.vercel.pub/${data.slug}`,
