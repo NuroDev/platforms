@@ -1,4 +1,4 @@
-export const getTwitterMedia = async (id) => {
+export const getTwitterMedia = async (id: number) => {
   try {
     const response = await fetch(
       `https://api.twitter.com/1.1/statuses/show.json?id=${id}&tweet_mode=extended`,
@@ -13,15 +13,13 @@ export const getTwitterMedia = async (id) => {
 
     // filter for only MP4 videos
     const mp4VideosOnly = videoData.variants.filter(
-      (variant) => variant.content_type === "video/mp4"
+      (variant: any ) => variant.content_type === "video/mp4"
     );
 
     // get the video with the best bitrate
-    const bestVideoBitrate = mp4VideosOnly.reduce(function (prev, current) {
+    return mp4VideosOnly.reduce((prev: { bitrate: number; }, current: { bitrate: number; }) => {
       return prev.bitrate > current.bitrate ? prev : current;
     });
-
-    return bestVideoBitrate;
   } catch (error) {
     console.error(id, error);
   }

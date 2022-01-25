@@ -1,8 +1,8 @@
 import querystring from "querystring";
 import { getTwitterMedia } from "./twitter-media";
-import { truncate } from "./util";
+import {Tweet} from "@/types/twitter";
 
-export const getTweets = async (id) => {
+export const getTweets = async (id: number) => {
   const queryParams = querystring.stringify({
     expansions:
       "author_id,attachments.media_keys,referenced_tweets.id,referenced_tweets.id.author_id,attachments.poll_ids",
@@ -25,15 +25,15 @@ export const getTweets = async (id) => {
 
   const tweet = await response.json();
 
-  const getAuthorInfo = (author_id) => {
-    return tweet.includes.users.find((user) => user.id === author_id);
+  const getAuthorInfo = (author_id: string) => {
+    return tweet.includes.users.find((user: Record<string, any>) => user.id === author_id);
   };
 
-  const getReferencedTweets = (mainTweet) => {
+  const getReferencedTweets = (mainTweet: Tweet) => {
     return (
-      mainTweet?.referenced_tweets?.map((referencedTweet) => {
+      mainTweet?.referenced_tweets?.map((referencedTweet: Tweet) => {
         const fullReferencedTweet = tweet.includes.tweets.find(
-          (tweet) => tweet.id === referencedTweet.id
+          (tweet: Tweet) => tweet.id === referencedTweet.id
         );
 
         return {
@@ -47,11 +47,11 @@ export const getTweets = async (id) => {
 
   // function to distinguish between external URLs and external t.co links and internal t.co links
   // (e.g. images, videos, gifs, quote tweets) and remove/replace them accordingly
-  const getExternalUrls = (tweet) => {
+  const getExternalUrls = (tweet: Tweet) => {
     const externalURLs = tweet?.entities?.urls;
     const mappings = {};
     if (externalURLs) {
-      externalURLs.map((url) => {
+      externalURLs.map((url: { url: any; display_url: string; expanded_url: any; }) => {
         mappings[`${url.url}`] =
           !url.display_url.startsWith("pic.twitter.com") &&
           !url.display_url.startsWith("twitter.com")
@@ -59,20 +59,20 @@ export const getTweets = async (id) => {
             : "";
       });
     }
-    var processedText = tweet?.text;
+    let processedText = tweet?.text;
     Object.entries(mappings).map(([k, v], i) => {
       processedText = processedText.replace(k, v);
     });
     return processedText;
   };
   if (tweet.data) tweet.data.text = getExternalUrls(tweet?.data); // removing/replacing t.co links for main tweet
-  tweet?.includes?.tweets?.map((twt) => {
+  tweet?.includes?.tweets?.map((twt: Tweet) => {
     // removing/replacing t.co links for referenced tweets
     twt.text = getExternalUrls(twt);
   });
 
-  const media = tweet.data?.attachments?.media_keys?.map((key) =>
-    tweet.includes.media.find((media) => media.media_key === key)
+  const media = tweet.data?.attachments?.media_keys?.map((key: string) =>
+    tweet.includes.media.find((media: any) => media.media_key === key)
   );
 
   const referenced_tweets = getReferencedTweets(tweet.data);
@@ -81,7 +81,7 @@ export const getTweets = async (id) => {
     ...tweet.data,
     media: media || [],
     video:
-      media && (media[0].type == "video" || media[0].type == "animated_gif")
+      media && (media[0].type === "video" || media[0].type === "animated_gif")
         ? await getTwitterMedia(id)
         : null,
     polls: tweet?.includes?.polls,

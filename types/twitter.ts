@@ -1,0 +1,1 @@
+export type Tweet = Record<string, any>
