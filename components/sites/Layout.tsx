@@ -4,7 +4,16 @@ import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import Cookies from "js-cookie";
 
-export default function Layout({ meta, children, subdomain }) {
+import { Meta } from "@/types";
+import type { WithChildren } from "@/types";
+
+interface LayoutProps extends WithChildren {
+  meta?: Meta
+  siteId?: string;
+  subdomain?: string;
+}
+
+export default function Layout({ meta, children, subdomain }: LayoutProps) {
   const [scrolled, setScrolled] = useState(false);
 
   const onScroll = useCallback(() => {
@@ -16,11 +25,11 @@ export default function Layout({ meta, children, subdomain }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [onScroll]);
 
-  const [closeModal, setCloseModal] = useState(Cookies.get("closeModal"));
+  const [closeModal, setCloseModal] = useState<boolean>( !!Cookies.get("closeModal") );
 
   useEffect(() => {
     if (closeModal) {
-      Cookies.set("closeModal", true);
+      Cookies.set("closeModal", 'true' );
     } else {
       Cookies.remove("closeModal");
     }
