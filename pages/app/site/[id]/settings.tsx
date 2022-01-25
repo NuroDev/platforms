@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/app/Layout";
 import BlurImage from "@/components/BlurImage";
 import CloudinaryUploadWidget from "@/components/Cloudinary";
@@ -12,12 +12,22 @@ import toast, { Toaster } from "react-hot-toast";
 import { useDebounce } from "use-debounce";
 import { fetcher } from "@/lib/fetcher"
 
+type siteData = {
+  id: string | null,
+  name: string | null,
+  description: string | null,
+  subdomain: string | null,
+  customDomain: string | null,
+  image: string | null,
+  imageBlurhash: string | null,
+}
+
 export default function SiteSettings() {
   const router = useRouter();
   const { id } = router.query;
-  const siteId = id;
+  const siteId = id as string;
 
-  const { data: settings } = useSWR(
+  const { data: settings } = useSWR<siteData>(
     siteId && `/api/site?siteId=${siteId}`,
     fetcher,
     {
@@ -30,12 +40,12 @@ export default function SiteSettings() {
 
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   const [disabled, setDisabled] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingSite, setDeletingSite] = useState(false);
 
-  const [data, setData] = useState({
+  const [data, setData] = useState<siteData>({
     id: null,
     name: null,
     description: null,
@@ -55,14 +65,14 @@ export default function SiteSettings() {
         customDomain: settings.customDomain,
         image: settings.image,
         imageBlurhash: settings.imageBlurhash,
-      });
+      } as siteData);
   }, [settings]);
 
   useEffect(() => {
     if (adding) setDisabled(true);
   }, [adding]);
 
-  async function saveSiteSettings(data) {
+  async function saveSiteSettings(data: siteData) {
     setSaving(true);
     const response = await fetch("/api/site", {
       method: "PUT",
@@ -71,7 +81,7 @@ export default function SiteSettings() {
       },
       body: JSON.stringify({
         id: siteId,
-        currentSubdomain: settings.subdomain,
+        currentSubdomain: settings?.subdomain,
         ...data,
       }),
     });
@@ -82,7 +92,7 @@ export default function SiteSettings() {
     }
   }
 
-  async function deleteSite(siteId) {
+  async function deleteSite(siteId: string) {
     setDeletingSite(true);
     const response = await fetch(`/api/site?siteId=${siteId}`, {
       method: "DELETE",
@@ -92,10 +102,10 @@ export default function SiteSettings() {
     }
   }
   const [debouncedSubdomain] = useDebounce(data?.subdomain, 1500);
-  const [subdomainError, setSubdomainError] = useState(null);
+  const [subdomainError, setSubdomainError] = useState<any>(null);
 
   useEffect(async () => {
-    if (
+    if ( debouncedSubdomain &&
       debouncedSubdomain != settings?.subdomain &&
       debouncedSubdomain?.length > 0
     ) {
@@ -131,7 +141,7 @@ export default function SiteSettings() {
                 name="name"
                 placeholder="Untitled Site"
                 value={data?.name}
-                onInput={(e) =>
+                onInput={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setData((data) => ({ ...data, name: e.target.value }))
                 }
               />
@@ -147,7 +157,7 @@ export default function SiteSettings() {
                 rows="3"
                 placeholder="Lorem ipsum forem dimsum"
                 value={data?.description}
-                onInput={(e) =>
+                onInput={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setData((data) => ({ ...data, description: e.target.value }))
                 }
               />
@@ -161,8 +171,8 @@ export default function SiteSettings() {
                 type="text"
                 name="subdomain"
                 placeholder="subdomain"
-                value={data.subdomain}
-                onInput={(e) =>
+                value={data?.subdomain}
+                onInput={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setData((data) => ({ ...data, subdomain: e.target.value }))
                 }
               />
@@ -214,7 +224,7 @@ export default function SiteSettings() {
                     autoComplete="off"
                     placeholder="mydomain.com"
                     pattern="^(?:[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.)?[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$"
-                    onInput={(e) => {
+                    onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const customDomain = e.target.value;
                       if (!customDomain || customDomain.length == 0) {
                         setDisabled(true);
