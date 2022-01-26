@@ -6,7 +6,7 @@ import { HttpMethod } from "@/types";
 
 import type { Site } from "@prisma/client";
 
-type DomainData = Pick<
+export type DomainData = Pick<
   Site,
   | "customDomain"
   | "description"

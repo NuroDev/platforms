@@ -13,12 +13,14 @@ import { useDebounce } from "use-debounce";
 import { fetcher } from "@/lib/fetcher"
 import { HttpMethod } from "@/types";
 
+import type { Site } from "@prisma/client";
+import type { DomainData } from "@/components/app/DomainCard";
 export default function SiteSettings() {
   const router = useRouter();
   const { id } = router.query;
-  const siteId = id;
+  const siteId = id as string;
 
-  const { data: settings } = useSWR(
+  const { data: settings } = useSWR<Site>(
     siteId && `/api/site?siteId=${siteId}`,
     fetcher,
     {
@@ -31,13 +33,13 @@ export default function SiteSettings() {
 
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<{code: number; domain: string} | null>(null);
   const [disabled, setDisabled] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingSite, setDeletingSite] = useState(false);
 
-  const [data, setData] = useState({
-    id: null,
+  const [data, setData] = useState<DomainData>({
+    id: '',
     name: null,
     description: null,
     subdomain: null,
@@ -63,7 +65,7 @@ export default function SiteSettings() {
     if (adding) setDisabled(true);
   }, [adding]);
 
-  async function saveSiteSettings(data) {
+  async function saveSiteSettings(data:Partial<Site>) {
     setSaving(true);
     const response = await fetch("/api/site", {
       method: "PUT",
@@ -72,7 +74,7 @@ export default function SiteSettings() {
       },
       body: JSON.stringify({
         id: siteId,
-        currentSubdomain: settings.subdomain,
+        currentSubdomain: settings?.subdomain,
         ...data,
       }),
     });
@@ -83,7 +85,7 @@ export default function SiteSettings() {
     }
   }
 
-  async function deleteSite(siteId) {
+  async function deleteSite(siteId:string) {
     setDeletingSite(true);
     const response = await fetch(`/api/site?siteId=${siteId}`, {
       method: "DELETE",
@@ -92,23 +94,26 @@ export default function SiteSettings() {
       router.push("/");
     }
   }
-  const [debouncedSubdomain] = useDebounce(data?.subdomain, 1500);
-  const [subdomainError, setSubdomainError] = useState(null);
+  const [debouncedSubdomain] = useDebounce(data?.subdomain as string, 1500);
+  const [subdomainError, setSubdomainError] = useState('');
 
-  useEffect(async () => {
-    if (
-      debouncedSubdomain != settings?.subdomain &&
-      debouncedSubdomain?.length > 0
-    ) {
+  useEffect(() => {
+    async function checkAvailability(debouncedSubdomain:string) {
       const response = await fetch(
         `/api/domain/check?domain=${debouncedSubdomain}&subdomain=1`
       );
       const available = await response.json();
       if (available) {
-        setSubdomainError(null);
+        setSubdomainError('');
       } else {
         setSubdomainError(`${debouncedSubdomain}.vercel.pub`);
       }
+    }
+    if (
+      debouncedSubdomain !== settings?.subdomain &&
+      debouncedSubdomain?.length > 0
+    ) {
+      checkAvailability(debouncedSubdomain)
     }
   }, [debouncedSubdomain]);
 
@@ -131,9 +136,9 @@ export default function SiteSettings() {
                 type="text"
                 name="name"
                 placeholder="Untitled Site"
-                value={data?.name}
+                value={data?.name as string}
                 onInput={(e) =>
-                  setData((data) => ({ ...data, name: e.target.value }))
+                  setData((data) => ({ ...data, name: e.currentTarget.value }))
                 }
               />
             </div>
@@ -143,13 +148,12 @@ export default function SiteSettings() {
             <div className="border border-gray-700 rounded-lg overflow-hidden flex items-center max-w-lg">
               <textarea
                 className="w-full px-5 py-3 font-cal text-gray-700 bg-white border-none focus:outline-none focus:ring-0 rounded-none placeholder-gray-400"
-                type="text"
                 name="description"
-                rows="3"
+                rows={3}
                 placeholder="Lorem ipsum forem dimsum"
-                value={data?.description}
+                value={data?.description as string}
                 onInput={(e) =>
-                  setData((data) => ({ ...data, description: e.target.value }))
+                  setData((data) => ({ ...data, description: e.currentTarget.value }))
                 }
               />
             </div>
@@ -162,9 +166,9 @@ export default function SiteSettings() {
                 type="text"
                 name="subdomain"
                 placeholder="subdomain"
-                value={data.subdomain}
+                value={data?.subdomain as string}
                 onInput={(e) =>
-                  setData((data) => ({ ...data, subdomain: e.target.value }))
+                  setData((data) => ({ ...data, subdomain: e.currentTarget.value }))
                 }
               />
               <div className="w-1/2 h-12 flex justify-center items-center font-cal rounded-r-lg border-l border-gray-600 bg-gray-100">
@@ -184,7 +188,7 @@ export default function SiteSettings() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  const customDomain = e.target.customDomain.value;
+                  const customDomain = e.currentTarget.customDomain.value;
                   setAdding(true);
                   await fetch(
                     `/api/domain?domain=${customDomain}&siteId=${siteId}`,
@@ -199,7 +203,7 @@ export default function SiteSettings() {
                         ...data,
                         customDomain: customDomain,
                       }));
-                      e.target.customDomain.value = "";
+                      e.currentTarget.customDomain.value = "";
                     } else {
                       setError({ code: res.status, domain: customDomain });
                     }
@@ -216,7 +220,7 @@ export default function SiteSettings() {
                     placeholder="mydomain.com"
                     pattern="^(?:[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.)?[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$"
                     onInput={(e) => {
-                      const customDomain = e.target.value;
+                      const customDomain = e.currentTarget.value;
                       if (!customDomain || customDomain.length == 0) {
                         setDisabled(true);
                       } else {
@@ -327,7 +331,7 @@ export default function SiteSettings() {
                   objectFit="cover"
                   placeholder="blur"
                   className="rounded-md"
-                  blurDataURL={data.imageBlurhash}
+                  blurDataURL={data.imageBlurhash as string}
                 />
               )}
             </div>
@@ -371,8 +375,8 @@ export default function SiteSettings() {
                 className="w-full px-5 py-3 text-gray-700 bg-white border-none focus:outline-none focus:ring-0 rounded-none rounded-r-lg placeholder-gray-400"
                 type="text"
                 name="name"
-                placeholder={data.name}
-                pattern={data.name}
+                placeholder={data.name as string}
+                pattern={data.name as string}
               />
             </div>
           </div>
@@ -405,8 +409,8 @@ export default function SiteSettings() {
             onClick={() => {
               saveSiteSettings(data);
             }}
-            disabled={saving || subdomainError}
-            className={`${saving || subdomainError
+            disabled={saving || !!subdomainError}
+            className={`${saving || !!subdomainError
               ? "cursor-not-allowed bg-gray-300 border-gray-300"
               : "bg-black hover:bg-white hover:text-black border-black"
               } mx-2 rounded-md w-36 h-12 text-lg text-white border-2 focus:outline-none transition-all ease-in-out duration-150`}
